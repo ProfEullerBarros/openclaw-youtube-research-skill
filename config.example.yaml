@@ -1,0 +1,50 @@
+# Copy this file to config.local.yaml and customize it.
+# Do not commit config.local.yaml if it contains private paths or delivery settings.
+
+profile:
+  name: "Your research profile"
+  language: "en"
+  timezone: "UTC"
+
+outputs:
+  # Use a relative folder for portable use, or point this to your Obsidian vault folder.
+  base_dir: "outputs"
+  video_notes_dir: "outputs/videos"
+  reports_dir: "outputs/reports"
+  temp_dir: ".tmp/youtube-transcript-research"
+
+research:
+  topics:
+    - "artificial intelligence"
+    - "education"
+    - "productivity"
+  keywords:
+    - "AI agents"
+    - "workflow"
+    - "research"
+  preferred_languages: ["en"]
+  primary_source_check: true
+
+budget:
+  max_channels: 3
+  max_videos_located: 30
+  max_videos_analyzed: 5
+  max_full_notes: 3
+  max_reports: 1
+
+channels:
+  - name: "Example Channel"
+    channel_id: ""
+    url: "https://www.youtube.com/@ExampleHandle"
+    priority: "high"
+    languages: ["en"]
+    topics:
+      - "example topic"
+    keywords:
+      - "example keyword"
+
+schedule:
+  cadence: "weekly"
+  day: "friday"
+  time: "09:00"
+  delivery: "none" # none, telegram, email, dashboard, etc.

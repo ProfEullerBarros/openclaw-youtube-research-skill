@@ -1,0 +1,3 @@
+display_name: YouTube Research
+short_description: Research YouTube videos and channels through RSS, metadata, transcripts, notes, and recurring briefings.
+default_prompt: Research the provided YouTube video or channel using public metadata and available transcripts. Summarize findings, mark unverified claims, and create Markdown outputs only if requested.
