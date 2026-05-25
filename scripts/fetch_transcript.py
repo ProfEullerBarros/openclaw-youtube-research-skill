@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 YTDLP_TIMEOUT_SECONDS = 120
+TIMEOUT_RETURN_CODE = 124
 
 
 def find_yt_dlp() -> str | None:
@@ -63,6 +64,11 @@ def classify_subtitle_failure(stderr: str, returncode: int | None, timed_out: bo
     return "unknown_error", "unable to fetch subtitles due to an unknown yt-dlp error"
 
 
+def timeout_result(exc: subprocess.TimeoutExpired, message: str) -> subprocess.CompletedProcess:
+    """Build a synthetic CompletedProcess for timeout handling paths."""
+    return subprocess.CompletedProcess(exc.cmd, returncode=TIMEOUT_RETURN_CODE, stdout="", stderr=message)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Fetch YouTube subtitles/transcripts with yt-dlp without downloading video.")
     ap.add_argument("url")
@@ -98,7 +104,7 @@ def main():
         meta_proc = run(metadata_cmd)
         metadata_timeout = False
     except subprocess.TimeoutExpired as exc:
-        meta_proc = subprocess.CompletedProcess(exc.cmd, returncode=124, stdout="", stderr="metadata request timed out")
+        meta_proc = timeout_result(exc, "metadata request timed out")
         metadata_timeout = True
 
     # Keep metadata and subtitle download separate. In yt-dlp, --print can imply
@@ -118,7 +124,7 @@ def main():
         sub_proc = run(subtitle_cmd)
         subtitles_timeout = False
     except subprocess.TimeoutExpired as exc:
-        sub_proc = subprocess.CompletedProcess(exc.cmd, returncode=124, stdout="", stderr="subtitle download timed out")
+        sub_proc = timeout_result(exc, "subtitle download timed out")
         subtitles_timeout = True
 
     files = sorted(str(p) for p in out_dir.glob("*") if p.is_file())
