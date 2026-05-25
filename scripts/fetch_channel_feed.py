@@ -12,7 +12,7 @@ from youtube_channel_resolver import resolve_channel_id, validate_youtube_target
 def positive_int(value: str) -> int:
     parsed = int(value)
     if parsed <= 0:
-        raise argparse.ArgumentTypeError("--limit must be greater than zero")
+        raise argparse.ArgumentTypeError("value must be greater than zero")
     return parsed
 
 

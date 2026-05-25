@@ -44,7 +44,11 @@ def _contains_any(text: str, patterns: list[str]) -> bool:
 
 
 def classify_subtitle_failure(stderr: str, returncode: int | None, timed_out: bool = False) -> tuple[str, str]:
-    """Classify yt-dlp subtitle failures as (failure_type, failure_message)."""
+    """Return (failure_type, failure_message) for yt-dlp subtitle failures.
+
+    failure_type is one of: timeout, no_subtitles_or_language, network_or_rate_limit,
+    access_restricted, partial_warning, or unknown_error.
+    """
     body = (stderr or "").strip()
     if timed_out:
         return "timeout", "yt-dlp timed out while fetching subtitles"
