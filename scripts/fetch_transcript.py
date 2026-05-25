@@ -3,9 +3,26 @@ import argparse
 from datetime import datetime
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
+from urllib.parse import urlparse
+
+YTDLP_TIMEOUT_SECONDS = 120
+TIMEOUT_RETURN_CODE = 124
+NO_SUBTITLES_PATTERNS = [
+    re.compile(p, flags=re.IGNORECASE)
+    for p in [r"no subtitles", r"has no subtitles", r"did not get any subtitles", r"requested language"]
+]
+NETWORK_OR_RATE_LIMIT_PATTERNS = [
+    re.compile(p, flags=re.IGNORECASE)
+    for p in [r"http error 429", r"too many requests", r"timed out", r"temporary failure", r"unable to download webpage", r"network"]
+]
+ACCESS_RESTRICTED_PATTERNS = [
+    re.compile(p, flags=re.IGNORECASE)
+    for p in [r"private video", r"members-only", r"sign in to confirm your age", r"video unavailable", r"not available in your country", r"login"]
+]
 
 
 def find_yt_dlp() -> str | None:
@@ -25,7 +42,43 @@ def default_out_dir() -> Path:
 
 
 def run(cmd: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, text=True, capture_output=True)
+    return subprocess.run(cmd, text=True, capture_output=True, timeout=YTDLP_TIMEOUT_SECONDS)
+
+
+def validate_video_url(url: str) -> tuple[bool, str]:
+    parsed = urlparse((url or "").strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return False, "url must be a valid http(s) URL"
+    return True, ""
+
+
+def contains_any_pattern(text: str, patterns: list[re.Pattern[str]]) -> bool:
+    return any(p.search(text) for p in patterns)
+
+
+def classify_subtitle_failure(stderr: str, returncode: int | None, timed_out: bool = False) -> tuple[str, str]:
+    """Return (failure_type, failure_message) for yt-dlp subtitle failures.
+
+    failure_type is one of: timeout, no_subtitles_or_language, network_or_rate_limit,
+    access_restricted, partial_warning, or unknown_error.
+    """
+    body = (stderr or "").strip()
+    if timed_out:
+        return "timeout", "yt-dlp timed out while fetching subtitles"
+    if contains_any_pattern(body, NO_SUBTITLES_PATTERNS):
+        return "no_subtitles_or_language", "video has no subtitles for requested language(s)"
+    if contains_any_pattern(body, NETWORK_OR_RATE_LIMIT_PATTERNS):
+        return "network_or_rate_limit", "network issue or rate limit while accessing YouTube"
+    if contains_any_pattern(body, ACCESS_RESTRICTED_PATTERNS):
+        return "access_restricted", "video is restricted or unavailable"
+    if returncode == 0 and body:
+        return "partial_warning", "yt-dlp returned warnings while fetching subtitles"
+    return "unknown_error", "unable to fetch subtitles due to an unknown yt-dlp error"
+
+
+def timeout_result(exc: subprocess.TimeoutExpired, message: str) -> subprocess.CompletedProcess:
+    """Build a synthetic CompletedProcess for timeout handling paths."""
+    return subprocess.CompletedProcess(exc.cmd, returncode=TIMEOUT_RETURN_CODE, stdout="", stderr=message)
 
 
 def main():
@@ -34,6 +87,10 @@ def main():
     ap.add_argument("--langs", default="en", help="Comma-separated subtitle languages, in priority order. Use a single language by default to avoid rate limits.")
     ap.add_argument("--out-dir", default="", help="Directory for subtitle files. Defaults to workspace .tmp.")
     args = ap.parse_args()
+    ok_url, reason = validate_video_url(args.url)
+    if not ok_url:
+        print(json.dumps({"ok": False, "error": reason, "url": args.url}, ensure_ascii=False, indent=2))
+        return 2
 
     yt_dlp = find_yt_dlp()
     if not yt_dlp:
@@ -55,7 +112,12 @@ def main():
         "--print", "%(id)s\t%(title)s\t%(channel)s\t%(upload_date)s\t%(webpage_url)s",
         args.url,
     ]
-    meta_proc = run(metadata_cmd)
+    try:
+        meta_proc = run(metadata_cmd)
+        metadata_timeout = False
+    except subprocess.TimeoutExpired as exc:
+        meta_proc = timeout_result(exc, "metadata request timed out")
+        metadata_timeout = True
 
     # Keep metadata and subtitle download separate. In yt-dlp, --print can imply
     # simulation behavior and prevent subtitle files from being written.
@@ -70,27 +132,37 @@ def main():
         "-o", output_tpl,
         args.url,
     ]
-    sub_proc = run(subtitle_cmd)
+    try:
+        sub_proc = run(subtitle_cmd)
+        subtitles_timeout = False
+    except subprocess.TimeoutExpired as exc:
+        sub_proc = timeout_result(exc, "subtitle download timed out")
+        subtitles_timeout = True
 
     files = sorted(str(p) for p in out_dir.glob("*") if p.is_file())
     ok = bool(files)
+    failure_type, failure_message = classify_subtitle_failure(sub_proc.stderr, sub_proc.returncode, timed_out=subtitles_timeout)
     result = {
         "ok": ok,
         "returncode": sub_proc.returncode,
         "yt_dlp": yt_dlp,
         "metadata": meta_proc.stdout.strip(),
         "metadata_stderr": meta_proc.stderr.strip(),
+        "metadata_timeout": metadata_timeout,
         "stdout": sub_proc.stdout.strip(),
         "stderr": sub_proc.stderr.strip(),
+        "failure_type": None if ok else failure_type,
+        "failure_message": None if ok else failure_message,
         "out_dir": str(out_dir),
         "files": files,
         "langs": args.langs,
         "workspace_safe": str(out_dir.resolve()).startswith(str(Path(os.environ.get("OPENCLAW_WORKSPACE", str(Path.cwd()))).resolve())),
     }
     if not files:
-        result["warning"] = "No subtitle file was downloaded. The video may not expose subtitles for requested languages."
+        result["warning"] = failure_message
     elif sub_proc.returncode != 0:
-        result["warning"] = "Subtitle file(s) were downloaded, but yt-dlp returned a nonzero code. This can happen when one requested language fails after another succeeds."
+        _, warn_message = classify_subtitle_failure(sub_proc.stderr, sub_proc.returncode, timed_out=subtitles_timeout)
+        result["warning"] = warn_message
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0 if ok else 1
