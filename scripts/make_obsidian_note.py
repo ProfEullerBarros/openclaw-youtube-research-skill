@@ -2,6 +2,7 @@
 import argparse
 import json
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -21,17 +22,21 @@ def main():
     args = ap.parse_args()
 
     meta_arg = args.metadata_json
-    if Path(meta_arg).exists():
-        meta = json.loads(Path(meta_arg).read_text(encoding="utf-8"))
-    else:
-        meta = json.loads(meta_arg)
+    try:
+        if Path(meta_arg).exists():
+            meta = json.loads(Path(meta_arg).read_text(encoding="utf-8"))
+        else:
+            meta = json.loads(meta_arg)
+    except json.JSONDecodeError as exc:
+        print(f"Invalid JSON in --metadata-json: {exc}", file=sys.stderr)
+        return 2
 
     title = meta.get("title") or "Video YouTube"
-    channel = meta.get("channel") or meta.get("uploader") or "Canal nao identificado"
+    channel = meta.get("channel") or meta.get("uploader") or "Unknown channel"
     url = meta.get("url") or meta.get("webpage_url") or ""
-    video_date = meta.get("date") or meta.get("upload_date") or "nao identificado"
-    transcript_type = meta.get("transcript_type") or "nao identificado"
-    language = meta.get("language") or "nao identificado"
+    video_date = meta.get("date") or meta.get("upload_date") or "unknown"
+    transcript_type = meta.get("transcript_type") or "unknown"
+    language = meta.get("language") or "unknown"
     accessed = datetime.now().strftime("%Y-%m-%d")
 
     out_dir = Path(args.output_dir)
@@ -44,57 +49,62 @@ def main():
     transcript_path = args.transcript
     excerpt = ""
     if transcript_path:
-        t = Path(transcript_path).read_text(encoding="utf-8", errors="ignore")
+        transcript_file = Path(transcript_path)
+        if not transcript_file.exists():
+            print(f"Transcript file not found: {transcript_path}", file=sys.stderr)
+            return 2
+        t = transcript_file.read_text(encoding="utf-8", errors="ignore")
         excerpt = t[:2000].strip()
 
     content = f"""# Video - {channel} - {title}
 
-## Metadados
+## Metadata
 
-- Canal: {channel}
-- Titulo: {title}
+- Channel: {channel}
+- Title: {title}
 - URL: {url}
-- Data do video: {video_date}
-- Data de acesso: {accessed}
-- Idioma: {language}
-- Tipo de transcricao: {transcript_type}
-- Arquivo de transcricao local: {transcript_path or 'nao salvo'}
+- Video date: {video_date}
+- Access date: {accessed}
+- Language: {language}
+- Transcript type: {transcript_type}
+- Local transcript file: {transcript_path or 'not saved'}
 
-## Resumo executivo
-
-Pending analysis.
-
-## Ideias principais
+## Executive Summary
 
 Pending analysis.
 
-## Ferramentas, autores, estudos ou referencias citadas
+## Key Ideas
 
 Pending analysis.
 
-## Applicability for the user
+## Tools, Authors, Studies, Or References Mentioned
 
 Pending analysis.
 
-## Links with your knowledge base
+## Applicability For The User
 
 Pending analysis.
 
-## Trechos uteis
+## Links With Existing Notes Or Projects
+
+Pending analysis.
+
+## Useful Excerpts
 
 {excerpt if excerpt else 'Pending selection.'}
 
-## Avaliacao critica
+## Critical Evaluation
 
 Pending analysis.
 
-## Limitacoes
+## Limitations
 
 - This note was created from a YouTube transcript and should be treated as an exploratory source.
 """
     out_path.write_text(content, encoding="utf-8")
     print(out_path)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
