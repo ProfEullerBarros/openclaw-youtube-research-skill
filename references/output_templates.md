@@ -20,9 +20,9 @@
 
 ## Key Ideas
 
-## Tools, Authors, Studies, Or References Mentioned
+## Tools, Authors, Studies, or References Mentioned
 
-## Applicability For The User
+## Applicability for the User
 
 ## Links With Existing Notes Or Projects
 

@@ -81,7 +81,7 @@ Pending analysis.
 
 Pending analysis.
 
-## Applicability For The User
+## Applicability for the User
 
 Pending analysis.
 
