@@ -85,7 +85,7 @@ Pending analysis.
 
 Pending analysis.
 
-## Links With Existing Notes Or Projects
+## Links with Existing Notes or Projects
 
 Pending analysis.
 

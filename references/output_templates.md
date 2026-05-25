@@ -24,7 +24,7 @@
 
 ## Applicability for the User
 
-## Links With Existing Notes Or Projects
+## Links with Existing Notes or Projects
 
 ## Useful Excerpts
 
