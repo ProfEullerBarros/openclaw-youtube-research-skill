@@ -9,6 +9,8 @@ import subprocess
 from pathlib import Path
 from urllib.parse import urlparse
 
+YTDLP_TIMEOUT_SECONDS = 120
+
 
 def find_yt_dlp() -> str | None:
     found = shutil.which("yt-dlp")
@@ -27,7 +29,7 @@ def default_out_dir() -> Path:
 
 
 def run(cmd: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, text=True, capture_output=True, timeout=120)
+    return subprocess.run(cmd, text=True, capture_output=True, timeout=YTDLP_TIMEOUT_SECONDS)
 
 
 def validate_video_url(url: str) -> tuple[bool, str]:
@@ -42,6 +44,7 @@ def _contains_any(text: str, patterns: list[str]) -> bool:
 
 
 def classify_subtitle_failure(stderr: str, returncode: int | None, timed_out: bool = False) -> tuple[str, str]:
+    """Classify yt-dlp subtitle failures as (failure_type, failure_message)."""
     body = (stderr or "").strip()
     if timed_out:
         return "timeout", "yt-dlp timed out while fetching subtitles"

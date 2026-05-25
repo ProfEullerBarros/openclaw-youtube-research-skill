@@ -10,6 +10,7 @@ _YOUTUBE_HOST_RE = re.compile(r"(^|\.)youtube\.com$|(^|\.)youtu\.be$", re.IGNORE
 
 
 def yt_dlp_path() -> str | None:
+    """Return the executable path for yt-dlp, preferring PATH then ~/.local/bin."""
     found = shutil.which("yt-dlp")
     if found:
         return found
@@ -18,6 +19,7 @@ def yt_dlp_path() -> str | None:
 
 
 def normalize_target(target: str) -> str:
+    """Normalize handle/URL input to a canonical YouTube target URL where possible."""
     target = (target or "").strip()
     if target.startswith("@"):
         return "https://www.youtube.com/" + target
@@ -27,6 +29,7 @@ def normalize_target(target: str) -> str:
 
 
 def search_query(target: str) -> str:
+    """Build a yt-dlp search fallback query for unresolved targets."""
     if "/@" in target:
         return "ytsearch1:@" + target.rsplit("/@", 1)[1].strip("/")
     if target.startswith("@"):
@@ -37,6 +40,7 @@ def search_query(target: str) -> str:
 
 
 def validate_youtube_target(target: str) -> tuple[bool, str]:
+    """Validate target input and ensure URL targets point to YouTube domains."""
     normalized = normalize_target(target)
     parsed = urlparse(normalized)
     if not parsed.scheme or not parsed.netloc:
@@ -50,6 +54,7 @@ def validate_youtube_target(target: str) -> tuple[bool, str]:
 
 
 def resolve_channel_id(target: str, *, timeout: int = 45) -> dict:
+    """Resolve a handle/URL to channel metadata via yt-dlp with fallback candidates."""
     yt = yt_dlp_path()
     if not yt:
         return {"ok": False, "error": "yt-dlp not found", "target": target}

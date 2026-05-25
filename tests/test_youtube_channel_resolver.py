@@ -17,7 +17,7 @@ class YouTubeChannelResolverTests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("only YouTube URLs", reason)
 
-    @patch("youtube_channel_resolver.yt_dlp_path", return_value="/usr/bin/yt-dlp")
+    @patch("youtube_channel_resolver.yt_dlp_path", return_value="/home/test/.local/bin/yt-dlp")
     @patch("youtube_channel_resolver.subprocess.run")
     def test_resolve_channel_id_success(self, mock_run, _mock_yt_dlp):
         mock_run.return_value = subprocess.CompletedProcess(
@@ -30,7 +30,7 @@ class YouTubeChannelResolverTests(unittest.TestCase):
         self.assertTrue(resolved["ok"])
         self.assertEqual(resolved["channel_id"], "UC123")
 
-    @patch("youtube_channel_resolver.yt_dlp_path", return_value="/usr/bin/yt-dlp")
+    @patch("youtube_channel_resolver.yt_dlp_path", return_value="/home/test/.local/bin/yt-dlp")
     @patch("youtube_channel_resolver.subprocess.run", side_effect=subprocess.TimeoutExpired(cmd=["yt-dlp"], timeout=45))
     def test_resolve_channel_id_timeout(self, _mock_run, _mock_yt_dlp):
         resolved = resolve_channel_id("@Example")

@@ -77,7 +77,7 @@ Pending analysis.
 
 Pending analysis.
 
-## Tools, Authors, Studies, Or References Mentioned
+## Tools, Authors, Studies, or References Mentioned
 
 Pending analysis.
 
