@@ -40,7 +40,7 @@ def validate_video_url(url: str) -> tuple[bool, str]:
     return True, ""
 
 
-def _contains_any(text: str, patterns: list[str]) -> bool:
+def contains_any_pattern(text: str, patterns: list[str]) -> bool:
     return any(re.search(p, text, flags=re.IGNORECASE) for p in patterns)
 
 
@@ -53,11 +53,11 @@ def classify_subtitle_failure(stderr: str, returncode: int | None, timed_out: bo
     body = (stderr or "").strip()
     if timed_out:
         return "timeout", "yt-dlp timed out while fetching subtitles"
-    if _contains_any(body, [r"no subtitles", r"has no subtitles", r"did not get any subtitles", r"requested language"]):
+    if contains_any_pattern(body, [r"no subtitles", r"has no subtitles", r"did not get any subtitles", r"requested language"]):
         return "no_subtitles_or_language", "video has no subtitles for requested language(s)"
-    if _contains_any(body, [r"http error 429", r"too many requests", r"timed out", r"temporary failure", r"unable to download webpage", r"network"]):
+    if contains_any_pattern(body, [r"http error 429", r"too many requests", r"timed out", r"temporary failure", r"unable to download webpage", r"network"]):
         return "network_or_rate_limit", "network issue or rate limit while accessing YouTube"
-    if _contains_any(body, [r"private video", r"members-only", r"sign in to confirm your age", r"video unavailable", r"not available in your country", r"login"]):
+    if contains_any_pattern(body, [r"private video", r"members-only", r"sign in to confirm your age", r"video unavailable", r"not available in your country", r"login"]):
         return "access_restricted", "video is restricted or unavailable"
     if returncode == 0 and body:
         return "partial_warning", "yt-dlp returned warnings while fetching subtitles"

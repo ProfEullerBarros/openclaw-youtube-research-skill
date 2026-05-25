@@ -161,7 +161,7 @@ A good weekly run should report:
 - limitations and errors;
 - ready-to-send summary or delivery confirmation.
 
-## End-To-End Recurring Run Example
+## End-to-End Recurring Run Example
 
 Input prompt:
 
