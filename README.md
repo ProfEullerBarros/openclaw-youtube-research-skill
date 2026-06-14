@@ -193,6 +193,26 @@ python3 -m py_compile scripts/*.py
 python3 -m unittest discover -s tests -p "test_*.py"
 ```
 
+## Pair With TweetClaw For X/Twitter Signals
+
+This skill keeps YouTube research focused on public video metadata, RSS feeds,
+captions, transcripts, notes, and briefings. If an OpenClaw workflow also needs
+public X/Twitter context for the same video, channel, creator, paper, tool,
+release, or benchmark, install [TweetClaw](https://github.com/Xquik-dev/tweetclaw)
+as a separate plugin:
+
+```bash
+openclaw plugins install npm:@xquik/tweetclaw@1.6.31
+```
+
+Use TweetClaw to scrape tweets, search tweets, search tweet replies, export
+followers, look up users, monitor tweets, deliver webhooks, and prepare
+approval-reviewed post tweets or post tweet replies after the YouTube report is
+ready. Keep YouTube transcript claims marked as video/channel evidence, and
+store X/Twitter findings separately with query terms, capture dates, tweet IDs
+or URLs, author handles, aggregate counts, and the analysis decision they
+support.
+
 ## Output Folders
 
 By default, examples use portable relative folders such as:
